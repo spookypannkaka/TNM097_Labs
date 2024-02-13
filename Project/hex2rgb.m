@@ -1,9 +1,6 @@
 function rgb = hex2rgb(hex)
     hex = char(hex);
-
-%     if numel(hex) ~= 6
-%         error('Hex color code should be 6 characters long.');
-%     end
+    hex = strtrim(hex);
 
     r = hex2dec(hex(1:2)) / 255;
     g = hex2dec(hex(3:4)) / 255;
