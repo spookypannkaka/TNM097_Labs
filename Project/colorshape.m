@@ -14,7 +14,7 @@ end
 % Apply the color to the shape pixels
 for channel = 1:3
     channelData = shape(:,:,channel); % Extract one color channel
-    channelData(shapePixels) = color(channel) * 255; % Apply the color, converting from [0,1] to [0,255] scale
+    channelData(shapePixels) = color(channel); % Apply the color
     shape(:,:,channel) = channelData; % Put the modified channel back
 end
 
