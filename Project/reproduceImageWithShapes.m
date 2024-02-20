@@ -1,9 +1,6 @@
-function outputImage = reproduceImageWithShapes(partitionSize, hexFile, shapeFile, imageFile)
+function outputImage = reproduceImageWithShapes(partitionSize, shapeFile, imageFile, hexFile)
 %REPRODUCEIMAGEWITHSHAPES Summary of this function goes here
 %   Detailed explanation goes here
-
-% Read the hex file and get RGB and LAB colors
-[rgbColors, labColors] = hexInRgbAndLab(hexFile);
 
 % Read the shape file and get a base shape image with correct alpha
 [shape, ~, alpha] = imread(shapeFile);
@@ -12,7 +9,39 @@ function outputImage = reproduceImageWithShapes(partitionSize, hexFile, shapeFil
 % Read the image file
 im = imread(imageFile);
 [rows, cols, ~] = size(im);
-%modifiedIm = 255 * ones(size(im), 'uint8');
+
+if nargin == 4 && exist(hexFile, 'file')
+    % Read the hex file and get RGB and LAB colors
+    [rgbColors, labColors] = hexInRgbAndLab(hexFile);
+
+    rgbColors = selectBestColors(rgbColors, 50);
+    
+    labColors = cell(size(rgbColors));
+    for i = 1:length(rgbColors)
+        labColors{i} = rgb2lab(double(rgbColors{i}) / 255);
+    end
+else
+    % Generate palette from the input image using k-means clustering
+    imFlat = reshape(im, [], 3);
+    [~, centroids] = kmeans(double(imFlat), 100, 'MaxIter', 1000, 'Replicates', 3);
+
+    rgbColors = mat2cell(uint8(centroids), ones(1, size(centroids, 1)), 3);
+
+    labColors = cell(size(rgbColors));
+    for i = 1:length(rgbColors)
+        labColors{i} = rgb2lab(double(rgbColors{i}) / 255);
+    end
+end
+
+% Read the hex file and get RGB and LAB colors
+%[rgbColors, labColors] = hexInRgbAndLab(hexFile);
+
+% Lower color values to compensate for the white space in the resulting
+% image
+factor = 0.8;
+for i = 1:length(rgbColors)
+    rgbColors{i} = round(rgbColors{i} * factor);
+end
 
 % Set up the output image that will be filled in with shapes
 numShapesHorizontally = ceil(cols / partitionSize);
