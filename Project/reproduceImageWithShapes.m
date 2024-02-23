@@ -79,14 +79,14 @@ end
 % Adjust RGB palette for whiteness in circle images
 % We estimate that the white outer part of the square containing the circle
 % takes up 21.5% space. We add this amount of white to compensate.
-whitePercentage = 21.5 / 100;
-white = [1, 1, 1];
-for i = 1:length(rgbColors)
-    originalColor = double(rgbColors{i}) / 255;
-    newColor = originalColor * (1 - whitePercentage) + white * whitePercentage;
-
-    rgbColors{i} = uint8(round(newColor * 255));
-end
+% whitePercentage = 21.5 / 100;
+% white = [1, 1, 1];
+% for i = 1:length(rgbColors)
+%     originalColor = double(rgbColors{i}) / 255;
+%     newColor = originalColor * (1 - whitePercentage) + white * whitePercentage;
+% 
+%     rgbColors{i} = uint8(round(newColor * 255));
+% end
 
 % Set up the output image that will be filled in with shapes
 numShapesHorizontally = ceil(cols / partitionSize);
@@ -110,12 +110,18 @@ for i = 1:partitionSize:rows
         % Calculate the mean color of the current block
         meanColor = mean(mean(double(currentBlock), 1), 2);
 
-        % Convert mean color to CIELAB and
-        % calculate distance between mean CIELAB and palette CIELAB ?
-        % and fetch the closest color
-        meanColorLab = rgb2lab(meanColor / 255);
+        % Add 21.5% white to the mean color
+        whitePercentage = 21.5 / 100;
+        white = [1, 1, 1];
+        meanColorWithWhite = mean(meanColor * (1 - whitePercentage) + white * whitePercentage);
 
+        % Convert mean color with added white to CIELAB
+        meanColorLab = rgb2lab(meanColorWithWhite / 255);
+
+        % Calculate distance between mean CIELAB and palette CIELAB
+        % and fetch the closest color
         closestColorIndex = findClosestColor(meanColorLab, labColors);
+
 
         closestColorRgb = rgbColors{closestColorIndex};
 
