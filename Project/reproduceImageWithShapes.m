@@ -10,13 +10,11 @@ function outputImage = reproduceImageWithShapes(partitionSize, shapeFile, imageF
 im = imread(imageFile);
 [rows, cols, ~] = size(im);
 
-[rgbColors, ~] = hexInRgbAndLab(hexFile);
+[rgbColors, labColors] = hexInRgbAndLab(hexFile);
+newRgbColors = [];
 
 if strcmp(mode, 'meanColorDistance')
-    labColors = cell(size(rgbColors));
-    for i = 1:length(rgbColors)
-        labColors{i} = rgb2lab(double(rgbColors{i}) / 255);
-    end
+    % Skip
 elseif strcmp(mode, 'globalReduction')
     rgbColors = selectBestColors(rgbColors, 50);
     labColors = cell(size(rgbColors));
@@ -26,51 +24,26 @@ elseif strcmp(mode, 'globalReduction')
 elseif strcmp(mode, 'imageColorDistance')
     % Generate palette from the input image using k-means clustering
     imFlat = reshape(im, [], 3);
-    [~, centroids] = kmeans(double(imFlat), length(rgbColors), 'MaxIter', 1000, 'Replicates', 3);
+    [~, centroids] = kmeans(double(imFlat), 100, 'MaxIter', 1000, 'Replicates', 3);
 
     rgbColorsImage = mat2cell(uint8(centroids), ones(1, size(centroids, 1)), 3);
-    rgbColorsImage = rgbColorsImage';
 
-%     labColorsImage = cell(size(rgbColorsImage));
-%     for i = 1:length(rgbColorsImage)
-%         labColorsImage{i} = rgb2lab(double(rgbColorsImage{i}) / 255);
-%     end
-
-    labColorsImage = zeros(length(rgbColorsImage), 3);  % Initialize as numeric array
+    labColorsImage = cell(size(rgbColorsImage));
     for i = 1:length(rgbColorsImage)
-        labColorsImage(i, :) = rgb2lab(double(rgbColorsImage{i}) / 255);  % Convert and store as row in labColorsImage
+        labColorsImage{i} = rgb2lab(double(rgbColorsImage{i}) / 255);
+        currentLabColor = reshape(labColorsImage{i}, 1, 1, 3);
+        closestColorIndex = findClosestColor(currentLabColor, labColors);
+        closestColorRgb = rgbColors{closestColorIndex};
+        newRgbColors{i} = closestColorRgb;
     end
 
+    rgbColors = newRgbColors;
     labColors = cell(size(rgbColors));
     for i = 1:length(rgbColors)
         labColors{i} = rgb2lab(double(rgbColors{i}) / 255);
     end
-
-    % Compare each color in labColorsImage with labColors and find the closest match
-    for i = 1:size(labColorsImage, 1)
-        % Extract the i-th labColorImage as a 1x1x3 double
-        currentLabColorImage = reshape(labColorsImage(i, :), 1, 1, 3);
-
-        % Find the closest color index from labColors
-        closestColorIndex = findClosestColor(currentLabColorImage, labColors);
-        
-        % Update the corresponding RGB color in rgbColors based on the closest match
-        closestColorRgb = rgbColors{closestColorIndex};
-        rgbColors{i} = closestColorRgb;
-    end
-
-    % 
-%     for i = length(rgbColors)
-%         closestColorIndex = findClosestColor(labColorsImage{i}, labColors);
-%         closestColorRgb = rgbColors{closestColorIndex};
-%         rgbColors{i} = closestColorRgb;
-%     end
 else
     disp("Selected mean color distance as input was wrong");
-    labColors = cell(size(rgbColors));
-    for i = 1:length(rgbColors)
-        labColors{i} = rgb2lab(double(rgbColors{i}) / 255);
-    end
 end
 
 % Read the hex file and get RGB and LAB colors
@@ -96,7 +69,7 @@ newImCols = numShapesHorizontally * shapeCols;
 outputImage = 255 * ones(newImRows, newImCols, 3, 'uint8');
 
 % Initialize list of closest color indexes
-closestColorIndexes = zeros(ceil(rows/partitionSize), ceil(cols/partitionSize));
+% closestColorIndexes = zeros(ceil(rows/partitionSize), ceil(cols/partitionSize));
 
 for i = 1:partitionSize:rows
     for j = 1:partitionSize:cols
@@ -128,7 +101,7 @@ for i = 1:partitionSize:rows
         ci = ceil(i / partitionSize);
         cj = ceil(j / partitionSize);
 
-        closestColorIndexes(ci, cj) = closestColorIndex;
+%         closestColorIndexes(ci, cj) = closestColorIndex;
 
         coloredCircle = colorshape(closestColorRgb, shape);
 
