@@ -8,6 +8,14 @@ function outputImage = reproduceImageWithShapes(partitionSize, shapeFile, imageF
 
 % Read the image file
 im = imread(imageFile);
+
+if ge(size(im,1), 800) || ge(size(im,2), 400)
+    targetWidth = 400;
+    targetHeight = size(im, 1) * targetWidth / size(im, 2);
+    
+    im = imresize(im, [targetHeight, targetWidth], 'bicubic');
+end
+
 [rows, cols, ~] = size(im);
 
 [rgbColors, labColors] = hexInRgbAndLab(hexFile);
