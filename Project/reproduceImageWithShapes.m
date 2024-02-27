@@ -1,6 +1,4 @@
 function outputImage = reproduceImageWithShapes(partitionSize, shapeFile, imageFile, hexFile, mode)
-%REPRODUCEIMAGEWITHSHAPES Summary of this function goes here
-%   Detailed explanation goes here
 
 % Read the shape file and get a base shape image with correct alpha
 [shape, ~, alpha] = imread(shapeFile);
@@ -9,11 +7,23 @@ function outputImage = reproduceImageWithShapes(partitionSize, shapeFile, imageF
 % Read the image file
 im = imread(imageFile);
 
-if ge(size(im,1), 800) || ge(size(im,2), 400)
-    targetWidth = 400;
-    targetHeight = size(im, 1) * targetWidth / size(im, 2);
-    
+% Determine the larger dimension
+largerDimension = max(size(im, 1), size(im, 2));
+threshold = 600;
+
+% Check if the larger dimension is greater than treshold
+if largerDimension > threshold
+    % Calculate the scaling factor
+    scaleFactor = threshold / largerDimension;
+
+    % Calculate the new dimensions
+    targetHeight = size(im, 1) * scaleFactor;
+    targetWidth = size(im, 2) * scaleFactor;
+
+    % Resize the image
     im = imresize(im, [targetHeight, targetWidth], 'bicubic');
+    
+    disp('Image has been resized. Resizing may result in loss of detail and image quality degradation.');
 end
 
 [rows, cols, ~] = size(im);
@@ -54,30 +64,12 @@ else
     disp("Selected mean color distance as input was wrong");
 end
 
-% Read the hex file and get RGB and LAB colors
-%[rgbColors, labColors] = hexInRgbAndLab(hexFile);
-
-% Adjust RGB palette for whiteness in circle images
-% We estimate that the white outer part of the square containing the circle
-% takes up 21.5% space. We add this amount of white to compensate.
-% whitePercentage = 21.5 / 100;
-% white = [1, 1, 1];
-% for i = 1:length(rgbColors)
-%     originalColor = double(rgbColors{i}) / 255;
-%     newColor = originalColor * (1 - whitePercentage) + white * whitePercentage;
-% 
-%     rgbColors{i} = uint8(round(newColor * 255));
-% end
-
 % Set up the output image that will be filled in with shapes
 numShapesHorizontally = ceil(cols / partitionSize);
 numShapesVertically = ceil(rows / partitionSize);
 newImRows = numShapesVertically * shapeRows;
 newImCols = numShapesHorizontally * shapeCols;
 outputImage = 255 * ones(newImRows, newImCols, 3, 'uint8');
-
-% Initialize list of closest color indexes
-% closestColorIndexes = zeros(ceil(rows/partitionSize), ceil(cols/partitionSize));
 
 for i = 1:partitionSize:rows
     for j = 1:partitionSize:cols
@@ -109,8 +101,6 @@ for i = 1:partitionSize:rows
         ci = ceil(i / partitionSize);
         cj = ceil(j / partitionSize);
 
-%         closestColorIndexes(ci, cj) = closestColorIndex;
-
         coloredCircle = colorshape(closestColorRgb, shape);
 
         % Set alpha channel based on the "base" circle
@@ -127,15 +117,8 @@ for i = 1:partitionSize:rows
             outputImage(circleTop:(circleTop + shapeRows - 1), circleLeft:(circleLeft + shapeCols - 1), k) = ...
                 uint8(double(coloredCircle(:, :, k)) .* double(alphaChannel) / 255 + ...
                 double(currentBackground) .* (1 - double(alphaChannel) / 255));
-        end
-
-        % Apply the mean color to the current block in the modified image
-%         for k = 1:3 % For each color channel
-%             modifiedIm(i:endRow, j:endCol, k) = closestColorRgb(k);
-%         end
-           
+        end  
     end
 end
-
 end
 
